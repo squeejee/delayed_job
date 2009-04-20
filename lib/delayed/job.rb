@@ -9,6 +9,9 @@ module Delayed
     MAX_ATTEMPTS = 25
     MAX_RUN_TIME = 4.hours
     set_table_name :delayed_jobs
+    
+    belongs_to :user
+    named_scope :running, :conditions => ["locked_by IS NOT NULL"]
 
     # By default failed jobs are destroyed after too many attempts.
     # If you want to keep them around (perhaps to inspect the reason
@@ -114,6 +117,20 @@ module Delayed
       run_at   = args[1]
 
       Job.create(:payload_object => object, :priority => priority.to_i, :run_at => run_at)
+    end
+    
+    # Add a job to the queue
+    def self.enqueue_for_user(user, job_type, *args, &block)
+      object = block_given? ? EvaledJob.new(&block) : args.shift
+
+      unless object.respond_to?(:perform) || block_given?
+        raise ArgumentError, 'Cannot enqueue items which do not respond to perform'
+      end
+    
+      priority = args.first || 0
+      run_at   = args[1]
+
+      Job.create(:user_id => user.id, :job_type => job_type, :payload_object => object, :priority => priority.to_i, :run_at => run_at)
     end
 
     # Find a few candidate jobs to run (in case some immediately get locked by others).

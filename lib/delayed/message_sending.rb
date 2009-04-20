@@ -4,6 +4,10 @@ module Delayed
       Delayed::Job.enqueue Delayed::PerformableMethod.new(self, method.to_sym, args)
     end
     
+    def send_later_for_user(user, job_type, method, *args)
+      Delayed::Job.enqueue_for_user(user, job_type, Delayed::PerformableMethod.new(self, method.to_sym, args))
+    end
+    
     module ClassMethods
       def handle_asynchronously(method)
         without_name = "#{method}_without_send_later"
